@@ -102,11 +102,11 @@ namespace Sender
                     result = true;
                     break;
                 case '1':
-                    bus.Send(new ExtendTimeout1 {RequestId = requestId, ExtendBySeconds = 15});
+                    bus.Send(new ExtendAcceptanceTimeout {RequestId = requestId, ExtendBySeconds = 15});
                     result = true;
                     break;
                 case '2':
-                    bus.Send(new ReduceTimeout2 {RequestId = requestId, ReduceBySeconds = 15});
+                    bus.Send(new ReduceRejectionTimeout {RequestId = requestId, ReduceBySeconds = 15});
                     result = true;
                     break; 
                 case 'q':

@@ -3,9 +3,9 @@ using NServiceBus;
 
 namespace Messages
 {
-    public class ReduceTimeout2 : ICommand
+    public class ExtendAcceptanceTimeout : ICommand
     {
         public Guid RequestId { get; set; }
-        public int ReduceBySeconds { get; set; }
+        public int ExtendBySeconds { get; set; }
     }
 }

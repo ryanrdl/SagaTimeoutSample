@@ -7,8 +7,8 @@ namespace SagaService
 {
     public class RmaSaga : Saga<RmaSagaData>,
         IAmStartedByMessages<RmaRequestCreated>,
-        IHandleMessages<ExtendTimeout1>,
-        IHandleMessages<ReduceTimeout2>,
+        IHandleMessages<ExtendAcceptanceTimeout>,
+        IHandleMessages<ReduceRejectionTimeout>,
         IHandleMessages<RmaRequestApproved>,
         IHandleMessages<RmaRequestRejected>,
 
@@ -20,8 +20,8 @@ namespace SagaService
         protected override void ConfigureHowToFindSaga(SagaPropertyMapper<RmaSagaData> mapper)
         {
             mapper.ConfigureMapping<RmaRequestCreated>(o => o.RequestId).ToSaga(o => o.RequestId);
-            mapper.ConfigureMapping<ExtendTimeout1>(o => o.RequestId).ToSaga(o => o.RequestId);
-            mapper.ConfigureMapping<ReduceTimeout2>(o => o.RequestId).ToSaga(o => o.RequestId);
+            mapper.ConfigureMapping<ExtendAcceptanceTimeout>(o => o.RequestId).ToSaga(o => o.RequestId);
+            mapper.ConfigureMapping<ReduceRejectionTimeout>(o => o.RequestId).ToSaga(o => o.RequestId);
             mapper.ConfigureMapping<RmaRequestApproved>(o => o.RequestId).ToSaga(o => o.RequestId);
             mapper.ConfigureMapping<RmaRequestRejected>(o => o.RequestId).ToSaga(o => o.RequestId);
         }
@@ -75,7 +75,7 @@ namespace SagaService
             }
         }
 
-        public void Handle(ExtendTimeout1 message)
+        public void Handle(ExtendAcceptanceTimeout message)
         {
             Data.Timeout1Expires = Data.Timeout1Expires.AddSeconds(message.ExtendBySeconds);
             RequestTimeout<AcceptanceTimeout>(Data.Timeout1Expires);
@@ -106,7 +106,7 @@ namespace SagaService
             }
         }
 
-        public void Handle(ReduceTimeout2 message)
+        public void Handle(ReduceRejectionTimeout message)
         {
             Data.Timeout2Expires = Data.Timeout2Expires.AddSeconds(message.ReduceBySeconds*-1);
             RequestTimeout<RejectionTimeout>(Data.Timeout2Expires);
