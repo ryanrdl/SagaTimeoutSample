@@ -83,8 +83,9 @@ namespace Sender
             {
                 Console.WriteLine(Environment.NewLine + "Options:");
                 Console.WriteLine("(a) to approve the RMA request");
-                Console.WriteLine("(1) to extend timeout 1 by 15 seconds");
-                Console.WriteLine("(2) to reduce timeout 2 by 15 seconds"); 
+                Console.WriteLine("(r) to reject the RMA request");
+                Console.WriteLine("(1) to extend acceptance timeout by 15 seconds");
+                Console.WriteLine("(2) to reduce rejection timeout by 15 seconds"); 
                 Console.WriteLine("(q) to quit");
                 Console.Write(" > ");
             }
@@ -94,6 +95,10 @@ namespace Sender
             {
                 case 'a':
                     bus.Send(new ApproveRmaRequest{RequestId = requestId});
+                    result = true;
+                    break;
+                case 'r':
+                    bus.Send(new RejectRmaRequest{RequestId = requestId});
                     result = true;
                     break;
                 case '1':

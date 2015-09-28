@@ -12,7 +12,8 @@ namespace SagaService
     /// </summary>
     public class Handler : 
         IHandleMessages<CreateRmaRequest>,
-        IHandleMessages<ApproveRmaRequest>
+        IHandleMessages<ApproveRmaRequest>,
+        IHandleMessages<RejectRmaRequest>
     {
         private readonly IBus _bus;
 
@@ -40,6 +41,17 @@ namespace SagaService
                 Console.WriteLine("RMA request {0} approved", message.RequestId);
 
             _bus.Publish(new RmaRequestApproved
+            {
+                RequestId = message.RequestId
+            });
+        }
+
+        public void Handle(RejectRmaRequest message)
+        {
+            using (Colr.Red())
+                Console.WriteLine("RMA request {0} rejected", message.RequestId);
+
+            _bus.Publish(new RmaRequestRejected
             {
                 RequestId = message.RequestId
             });
