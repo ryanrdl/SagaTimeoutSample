@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.31101.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sender", "Sender\Sender.csproj", "{A162EC43-873D-452E-A53D-C75C01494CDD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SagaService", "SagaService\SagaService.csproj", "{CBA38DC5-56A5-4436-8B22-AA18D9D96AD2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Messages", "Messages\Messages.csproj", "{F95FB9F5-242A-497C-973A-EA10FE4351A1}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A162EC43-873D-452E-A53D-C75C01494CDD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A162EC43-873D-452E-A53D-C75C01494CDD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A162EC43-873D-452E-A53D-C75C01494CDD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A162EC43-873D-452E-A53D-C75C01494CDD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CBA38DC5-56A5-4436-8B22-AA18D9D96AD2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CBA38DC5-56A5-4436-8B22-AA18D9D96AD2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CBA38DC5-56A5-4436-8B22-AA18D9D96AD2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CBA38DC5-56A5-4436-8B22-AA18D9D96AD2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F95FB9F5-242A-497C-973A-EA10FE4351A1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F95FB9F5-242A-497C-973A-EA10FE4351A1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F95FB9F5-242A-497C-973A-EA10FE4351A1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F95FB9F5-242A-497C-973A-EA10FE4351A1}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
