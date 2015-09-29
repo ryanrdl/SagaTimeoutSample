@@ -36,6 +36,21 @@ namespace Sender
             }
         }
 
+        private static void Subscribe(IStartableBus bus, WaitHandle waitHandle)
+        {
+            try
+            {
+                bus.Start();
+
+                //Console.WriteLine("Waiting for messages.");
+                waitHandle.WaitOne();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Unhandled ex: {0}", ex);
+            }
+        }
+
         private static void Publish(ISendOnlyBus bus)
         { 
             while (Menu(_bus))
@@ -196,8 +211,18 @@ namespace Sender
             return value;
         }
 
+        private static bool RequestIsValid(int customerId, Guid requestId)
+        {
+            if (Db.AllRequests(customerId).Contains(requestId)) return true;
+            Console.WriteLine("{0} is no longer an active request, press any key to return to the previous menu...", requestId);
+            Console.ReadKey();
+            return false;
+        }
+
         public static bool RequestMenu(ISendOnlyBus bus, int customerId, Guid requestId)
         {
+            if (!RequestIsValid(customerId, requestId)) return false;
+
             Console.WriteLine(Environment.NewLine);
             using (Colr.Magenta())
             {
@@ -210,16 +235,50 @@ namespace Sender
             }
             
             char input = Console.ReadKey().KeyChar;
+            if (!RequestIsValid(customerId, requestId)) return false;
+
             switch (input)
             { 
                 case 'a':
-                    bus.Send(new ApproveRmaRequest{CustomerId = customerId, RequestId = requestId});
-                    return true; 
+                    bus.Send(new ApproveRmaRequest{CustomerId = customerId, RequestId = requestId}); 
+                    return false; 
                 case 'e':
-                    bus.Send(new ExtendAcceptanceTimeout {CustomerId = customerId, RequestId = requestId, ExtendBySeconds = 15});
+                    Console.WriteLine(Environment.NewLine);
+                    int extendBy = GetNumericValue("Number of seconds to extend by or (0) to cancel: ");
+
+                    if (extendBy > 0)
+                    {
+                        bus.Send(new ExtendAcceptanceTimeout
+                        {
+                            CustomerId = customerId,
+                            RequestId = requestId,
+                            ExtendBySeconds = extendBy
+                        });
+                    }
+                    else
+                    {
+                        using (Colr.Red())
+                            Console.WriteLine("Canceled");
+                    }
                     return true;
                 case 'r':
-                    bus.Send(new ReduceAcceptanceTimeout {CustomerId = customerId, RequestId = requestId, ReduceBySeconds = 15});
+                    Console.WriteLine(Environment.NewLine);
+                    int reduceBy = GetNumericValue("Number of seconds to reduce by or (0) to cancel: ");
+
+                    if (reduceBy > 0)
+                    {
+                        bus.Send(new ReduceAcceptanceTimeout
+                        {
+                            CustomerId = customerId,
+                            RequestId = requestId,
+                            ReduceBySeconds = reduceBy
+                        });
+                    }
+                    else
+                    {
+                        using (Colr.Red())
+                            Console.WriteLine("Canceled");
+                    }
                     return true;
                 case 'b':
                     return false; 
@@ -229,21 +288,6 @@ namespace Sender
                     return true;
             }
 
-        }
-
-        private static void Subscribe(IStartableBus bus, WaitHandle waitHandle)
-        {
-            try
-            {
-                bus.Start();
-
-                //Console.WriteLine("Waiting for messages.");
-                waitHandle.WaitOne();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Unhandled ex: {0}", ex);
-            }
         }
 
         private static Guid CreateNewRequest(ISendOnlyBus bus, int customerId, int acceptIn)

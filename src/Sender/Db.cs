@@ -33,7 +33,7 @@ namespace Sender
         public static Guid[] AllRequests(int customerId)
         {
             return _requests.GetOrAdd(customerId, new List<Guid>()).ToArray();
-        }
+        } 
 
         public static Guid NewRequest(int customerId)
         {

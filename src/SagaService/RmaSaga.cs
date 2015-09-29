@@ -13,8 +13,9 @@ namespace SagaService
 
         IHandleTimeouts<AcceptanceTimeout>,
         IHandleTimeouts<WarningBeforeAcceptanceTimeout>,
+        IHandleTimeouts<InternalPreWarningBeforeAcceptanceTimeout>,
 
-        IHandleSagaNotFound
+    IHandleSagaNotFound
     {
         protected override void ConfigureHowToFindSaga(SagaPropertyMapper<RmaSagaData> mapper)
         {
@@ -94,8 +95,7 @@ namespace SagaService
 
         public void Handle(ExtendAcceptanceTimeout message)
         {
-            Data.AcceptanceTimeout = Data.AcceptanceTimeout.AddSeconds(message.ExtendBySeconds);
-            RequestTimeout<AcceptanceTimeout>(Data.AcceptanceTimeout);
+            SetAcceptanceTimeouts(Data.AcceptanceTimeout.AddSeconds(message.ExtendBySeconds)); 
 
             using (Colr.Green())
                 Console.WriteLine("Request {0} acceptance timeout extended to {1} at {2} for customer {3}",
@@ -130,8 +130,7 @@ namespace SagaService
 
         public void Handle(ReduceAcceptanceTimeout message)
         {
-            Data.WarningBeforeAcceptanceTimeout = Data.WarningBeforeAcceptanceTimeout.AddSeconds(message.ReduceBySeconds*-1);
-            RequestTimeout<WarningBeforeAcceptanceTimeout>(Data.WarningBeforeAcceptanceTimeout);
+            SetAcceptanceTimeouts(Data.AcceptanceTimeout.AddSeconds(message.ReduceBySeconds*-1)); 
 
             using (Colr.Green())
                 Console.WriteLine("Request {0} rejection timeout reduced to {1} at {2} for customer {3}",
@@ -160,7 +159,23 @@ namespace SagaService
                     DateTime.Now.ToLongTimeString(), 
                     message.CustomerId);
             MarkAsComplete();
-        } 
+        }
+
+        public void Timeout(InternalPreWarningBeforeAcceptanceTimeout state)
+        {
+            RequestModel request = Db.Get(Data.RequestId);
+            if (request.State == RequestModel.RequestState.Pending)
+            {
+                if (Data.WarningBeforeAcceptanceTimeout < DateTime.Now)
+                {
+                    using (Colr.Yellow())
+                        Console.WriteLine("(Internal warning) Rma request {0} will auto accept at {1} for customer {2}",
+                            Data.RequestId,
+                            Data.AcceptanceTimeout,
+                            Data.CustomerId); 
+                } 
+            } 
+        }
     }
 
     public class AcceptanceTimeout
@@ -169,6 +184,11 @@ namespace SagaService
     }
 
     public class WarningBeforeAcceptanceTimeout
+    {
+
+    }
+
+    public class InternalPreWarningBeforeAcceptanceTimeout
     {
 
     }
