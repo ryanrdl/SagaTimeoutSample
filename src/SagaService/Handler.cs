@@ -13,7 +13,11 @@ namespace SagaService
     public class Handler : 
         IHandleMessages<CreateRmaRequest>,
         IHandleMessages<ApproveRmaRequest>,
-        IHandleMessages<RejectRmaRequest>
+        IHandleMessages<RejectRmaRequest>,
+
+        IHandleMessages<ExtendAllAcceptanceTimeouts>,
+        IHandleMessages<ReduceAllRejectionTimeouts>
+
     {
         private readonly IBus _bus;
 
@@ -26,6 +30,9 @@ namespace SagaService
         {
             using (Colr.Blue())
                 Console.WriteLine("RMA request {0} approved", message.RequestId);
+
+
+            Db.Save(message.RequestId, message.CustomerId);
 
             _bus.Publish(new RmaRequestCreated
             {
@@ -40,6 +47,8 @@ namespace SagaService
             using (Colr.Green())
                 Console.WriteLine("RMA request {0} approved", message.RequestId);
 
+            Db.Approve(message.RequestId);
+
             _bus.Publish(new RmaRequestApproved
             {
                 RequestId = message.RequestId
@@ -51,10 +60,48 @@ namespace SagaService
             using (Colr.Red())
                 Console.WriteLine("RMA request {0} rejected", message.RequestId);
 
+            Db.Reject(message.RequestId);
+
             _bus.Publish(new RmaRequestRejected
             {
                 RequestId = message.RequestId
             });
+        }
+         
+        /// <summary>
+        /// A saga needs a single message per saga and trying to make one message service multiple
+        /// sagas ended up being hacky.
+        /// </summary>
+        /// <param name="message"></param>
+        public void Handle(ExtendAllAcceptanceTimeouts message)
+        {
+            foreach (var model in Db.GetAll())
+            {
+                _bus.SendLocal(new ExtendAcceptanceTimeout
+                {
+                    CustomerId = model.CustomerId,
+                    RequestId = model.Id,
+                    ExtendBySeconds = message.ExtendBySeconds
+                });
+            }
+        }
+        
+        /// <summary>
+        /// A saga needs a single message per saga and trying to make one message service multiple
+        /// sagas ended up being hacky.
+        /// </summary>
+        /// <param name="message"></param>
+        public void Handle(ReduceAllRejectionTimeouts message)
+        {
+            foreach (var model in Db.GetAll())
+            {
+                _bus.SendLocal(new ReduceRejectionTimeout
+                {
+                    CustomerId = model.CustomerId,
+                    RequestId = model.Id,
+                    ReduceBySeconds = message.ReduceBySeconds
+                });
+            }
         }
     }
 }

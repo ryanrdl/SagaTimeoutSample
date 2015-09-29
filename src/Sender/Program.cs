@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Threading;
 using Messages;
 using NServiceBus;
@@ -36,11 +38,204 @@ namespace Sender
         }
 
         private static void Publish(ISendOnlyBus bus)
-        {
-            Guid requestId = CreateNewRequest(bus);
-            while (PromptForAction(bus, requestId))
+        { 
+            while (Menu(_bus))
             {
             }
+        }
+
+        private static readonly ConcurrentBag<Guid> _customers = new ConcurrentBag<Guid>(); 
+
+        public static bool Menu(ISendOnlyBus bus)
+        {
+            Guid[] customers = _customers.ToArray();
+
+            using (Colr.Green())
+            {
+                Console.WriteLine(Environment.NewLine + "Menu:");
+                Console.WriteLine("(n)ew customer");
+                for (var i = 0; i < _customers.Count; i++)
+                {
+                    Console.WriteLine("({0}) Customer {1}", i, customers[i]);
+                }
+                Console.WriteLine("(q) to quit");
+                Console.Write(" > ");
+            }
+
+            char input = Console.ReadKey().KeyChar;
+            switch (input)
+            {
+                case 'n':
+                    Guid customerId = Guid.NewGuid();
+
+                    _customers.Add(customerId);
+                    while (CustomerMenu(bus, customerId))
+                    {
+                    }
+                    return true;
+                case 'q':
+                    return false;
+                default:
+                    int i = int.Parse(input.ToString());
+                    if (i < _customers.Count)
+                    {
+                        while (CustomerMenu(bus, customers[i]))
+                        { 
+                        }
+                        return true;
+                    }
+
+                    using (Colr.Red())
+                        Console.WriteLine("Unknown input '{0}', please try again" + Environment.NewLine, input);
+
+                    return true;
+            }
+        }
+
+        private static readonly ConcurrentDictionary<Guid, List<Guid>> _requests = new ConcurrentDictionary<Guid, List<Guid>>();
+
+        public static bool CustomerMenu(ISendOnlyBus bus, Guid customerId)
+        {
+            List<Guid> requests = _requests.GetOrAdd(customerId, new List<Guid>());
+
+            Console.WriteLine(Environment.NewLine);
+            using (Colr.Yellow())
+            {
+                Console.WriteLine(Environment.NewLine + "Customer {0} Menu:", customerId);
+                Console.WriteLine("(n)ew request");
+                Console.WriteLine("(e)xtend all acceptance timeouts");
+                Console.WriteLine("(r)educe all reject timeouts");
+                for (var i = 0; i < requests.Count; i++)
+                {
+                    Console.WriteLine("({0}) Request {1}", i, requests[i]);
+                }
+                Console.WriteLine("(b)ack to previous menu");
+                Console.Write(" > ");
+            }
+
+            char input = Console.ReadKey().KeyChar;
+            switch (input)
+            {
+                case 'n':
+                    foreach (var request in _requests)
+                    {
+                        if (request.Key == customerId)
+                        {
+                            Guid requestId = CreateNewRequest(bus, customerId);
+                            request.Value.Add(requestId);
+                            while (RequestMenu(bus, customerId, requestId))
+                            {
+                            }
+                            return true;
+                        }
+                    }
+
+                    return true;
+                case 'e':
+                    Console.WriteLine(Environment.NewLine);
+                    int extendBy = GetNumericValue("Number of seconds to extend by or (0) to cancel: ");
+
+                    if (extendBy > 0)
+                    {
+                        bus.Send(new ExtendAllAcceptanceTimeouts {CustomerId = customerId, ExtendBySeconds = extendBy});
+                    }
+                    else
+                    {
+                        using (Colr.Red())
+                            Console.WriteLine("Canceled");
+                    }
+                    return true;
+                case 'r':
+                    Console.WriteLine(Environment.NewLine);
+                    int reduceBy = GetNumericValue("Number of seconds to reduce by or (0) to cancel: ");
+
+                    if (reduceBy > 0)
+                    {
+                        bus.Send(new ReduceAllRejectionTimeouts {CustomerId = customerId, ReduceBySeconds = reduceBy});
+                    }
+                    else
+                    {
+                        using (Colr.Red())
+                            Console.WriteLine("Canceled");
+                    }
+                    return true;
+                case 'b':
+                    return false;
+                default:
+                    int i = int.Parse(input.ToString());
+                    if (i < requests.Count)
+                    {
+                        while (RequestMenu(bus, customerId, requests[i]))
+                        {
+                        }
+                        return true;
+                    }
+
+                    using (Colr.Red())
+                        Console.WriteLine("Unknown input '{0}', please try again" + Environment.NewLine, input);
+                    return true;
+            } 
+        }
+
+        public static int GetNumericValue(string prompt)
+        { 
+            int value = 0;
+            bool prompted = false;
+
+            do
+            {
+                Console.Write(prompt);
+
+                if (prompted && value <= 0)
+                {
+                    using (Colr.Red())
+                        Console.WriteLine("'{0}' is not a numeric value or less than 0, please try again");
+                }
+
+                prompted = true;
+
+            } while (!int.TryParse(Console.ReadLine(), out value));
+
+            return value;
+        }
+
+        public static bool RequestMenu(ISendOnlyBus bus, Guid customerId, Guid requestId)
+        {
+            Console.WriteLine(Environment.NewLine);
+            using (Colr.Magenta())
+            {
+                Console.WriteLine(Environment.NewLine + "Request {0} Menu:", requestId);
+                Console.WriteLine("(a)pprove");
+                Console.WriteLine("(r)eject");
+                Console.WriteLine("(e)xtend acceptance timeout");
+                Console.WriteLine("re(d)uce rejection timeout");
+                Console.WriteLine("(b)ack to previous menu");
+                Console.Write(" > ");
+            }
+            
+            char input = Console.ReadKey().KeyChar;
+            switch (input)
+            { 
+                case 'a':
+                    bus.Send(new ApproveRmaRequest{CustomerId = customerId, RequestId = requestId});
+                    return true;
+                case 'r':
+                    bus.Send(new RejectRmaRequest{CustomerId = customerId, RequestId = requestId});
+                    return true;
+                case 'e':
+                    bus.Send(new ExtendAcceptanceTimeout {CustomerId = customerId, RequestId = requestId, ExtendBySeconds = 15});
+                    return true;
+                case 'd':
+                    bus.Send(new ReduceRejectionTimeout {CustomerId = customerId, RequestId = requestId, ReduceBySeconds = 15});
+                    return true;
+                case 'b':
+                    return false; 
+                default:
+                    using (Colr.Red())
+                        Console.WriteLine("I don't understand, try again...");
+                    return true;
+            }
+
         }
 
         private static void Subscribe(IStartableBus bus, WaitHandle waitHandle)
@@ -49,7 +244,7 @@ namespace Sender
             {
                 bus.Start();
 
-                Console.WriteLine("Waiting for messages.");
+                //Console.WriteLine("Waiting for messages.");
                 waitHandle.WaitOne();
             }
             catch (Exception ex)
@@ -58,68 +253,18 @@ namespace Sender
             }
         }
 
-        private static Guid CreateNewRequest(ISendOnlyBus bus)
+        private static Guid CreateNewRequest(ISendOnlyBus bus, Guid customerId)
         {
             Guid requestId = Guid.NewGuid();
             bus.Send(new CreateRmaRequest
             {
+                CustomerId = customerId,
                 RequestId = requestId,
-                Timeout1Seconds = 40,
-                Timeout2Seconds = 60
-            });
-
-
-            using (Colr.Blue())
-                Console.WriteLine("Send CreateRmaRequest with requestId {0}", requestId);
+                Timeout1Seconds = 30,
+                Timeout2Seconds = 30
+            }); 
 
             return requestId;
-        }
-
-        private static bool PromptForAction(ISendOnlyBus bus, Guid requestId)
-        { 
-            bool result;
-
-            using (Colr.Green())
-            {
-                Console.WriteLine(Environment.NewLine + "Options:");
-                Console.WriteLine("(a) to approve the RMA request");
-                Console.WriteLine("(r) to reject the RMA request");
-                Console.WriteLine("(1) to extend acceptance timeout by 15 seconds");
-                Console.WriteLine("(2) to reduce rejection timeout by 15 seconds"); 
-                Console.WriteLine("(q) to quit");
-                Console.Write(" > ");
-            }
-            char input = Console.ReadKey().KeyChar;
-
-            switch (input)
-            {
-                case 'a':
-                    bus.Send(new ApproveRmaRequest{RequestId = requestId});
-                    result = true;
-                    break;
-                case 'r':
-                    bus.Send(new RejectRmaRequest{RequestId = requestId});
-                    result = true;
-                    break;
-                case '1':
-                    bus.Send(new ExtendAcceptanceTimeout {RequestId = requestId, ExtendBySeconds = 15});
-                    result = true;
-                    break;
-                case '2':
-                    bus.Send(new ReduceRejectionTimeout {RequestId = requestId, ReduceBySeconds = 15});
-                    result = true;
-                    break; 
-                case 'q':
-                    result = false;
-                    break;
-                default:
-                    using (Colr.Red())
-                        Console.WriteLine("I don't understand, try again...");
-                    result = true;
-                    break;
-            }
-
-            return result;
-        }
+        } 
     }
 }

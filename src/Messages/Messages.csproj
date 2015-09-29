@@ -42,6 +42,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ExtendAllAcceptanceTimeouts.cs" />
+    <Compile Include="ReduceAllRejectionTimeouts.cs" />
     <Compile Include="RejectRmaRequest.cs" />
     <Compile Include="RmaRequestApproved.cs" />
     <Compile Include="Colr.cs" />

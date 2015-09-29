@@ -51,6 +51,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Db.cs" />
     <Compile Include="Handler.cs" />
     <Compile Include="RmaSaga.cs" />
     <Compile Include="EndpointConfig.cs" />
