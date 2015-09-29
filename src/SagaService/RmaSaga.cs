@@ -34,6 +34,8 @@ namespace SagaService
             Data.WarningBeforeAcceptanceTimeout = acceptAt.AddSeconds(-15); 
 
             RequestTimeout<WarningBeforeAcceptanceTimeout>(Data.WarningBeforeAcceptanceTimeout);
+            RequestTimeout<InternalPreWarningBeforeAcceptanceTimeout>(Data.WarningBeforeAcceptanceTimeout.AddSeconds(-5));
+            
         }
 
         public void Handle(RmaRequestCreated message)
