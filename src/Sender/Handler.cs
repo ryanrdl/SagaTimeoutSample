@@ -5,8 +5,8 @@ using NServiceBus;
 namespace Sender
 {
     public class Handler : 
-        IHandleMessages<RmaRequestApproved>,
-        IHandleMessages<RmaRequestRejected>
+        IHandleMessages<RmaRequestApproved> ,
+        IHandleMessages<RmaRequestAboutToAutoAccept>
     {
         public void Handle(RmaRequestApproved message)
         {
@@ -18,14 +18,19 @@ namespace Sender
             Db.RemoveRequest(message.RequestId);
         }
 
-        public void Handle(RmaRequestRejected message)
+        public void Handle(RmaRequestAboutToAutoAccept message)
         {
-            using (Colr.Red())
-                Console.WriteLine(Environment.NewLine + "Removing request {0} because it was rejected for customer {1}",
-                    message.RequestId,
-                    message.CustomerId);
+            Console.WriteLine(Environment.NewLine);
 
-            Db.RemoveRequest(message.RequestId);
+            using (Colr.Magenta())
+                Console.WriteLine(
+                    "!!!!!!!!!!! Rma request {0} for customer {1} will auto accept in {2} seconds if you don't extend it!",
+                    message.RequestId,
+                    message.CustomerId,
+                    DateTime.Now.Subtract(message.AutoAcceptAt).TotalSeconds
+                    );
+
+            Console.WriteLine(Environment.NewLine);
         }
     }
 }

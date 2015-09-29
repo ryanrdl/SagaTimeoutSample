@@ -135,7 +135,7 @@ namespace Sender
 
                     if (reduceBy > 0)
                     {
-                        bus.Send(new ReduceAllRejectionTimeouts {CustomerId = customerId, ReduceBySeconds = reduceBy});
+                        bus.Send(new ReduceAllAcceptanceTimeouts {CustomerId = customerId, ReduceBySeconds = reduceBy});
                     }
                     else
                     {
@@ -205,13 +205,13 @@ namespace Sender
                     bus.Send(new ApproveRmaRequest{CustomerId = customerId, RequestId = requestId});
                     return true;
                 case 'r':
-                    bus.Send(new RejectRmaRequest{CustomerId = customerId, RequestId = requestId});
+                    bus.Send(new WarnBeforeRmaRequestAcceptance{CustomerId = customerId, RequestId = requestId});
                     return true;
                 case 'e':
                     bus.Send(new ExtendAcceptanceTimeout {CustomerId = customerId, RequestId = requestId, ExtendBySeconds = 15});
                     return true;
                 case 'd':
-                    bus.Send(new ReduceRejectionTimeout {CustomerId = customerId, RequestId = requestId, ReduceBySeconds = 15});
+                    bus.Send(new ReduceAcceptanceTimeout {CustomerId = customerId, RequestId = requestId, ReduceBySeconds = 15});
                     return true;
                 case 'b':
                     return false; 
@@ -245,8 +245,7 @@ namespace Sender
             {
                 CustomerId = customerId,
                 RequestId = requestId,
-                Timeout1Seconds = 30,
-                Timeout2Seconds = 30
+                AcceptTimeoutSeconds = 60 
             });  
             return requestId;
         } 

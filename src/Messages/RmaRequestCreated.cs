@@ -7,7 +7,6 @@ namespace Messages
     {
         public int CustomerId { get; set; }
         public Guid RequestId { get; set; } 
-        public int AcceptanceTimeout { get; set; }
-        public int RejectionTimeout { get; set; }  
+        public int AcceptanceTimeout { get; set; }  
     }
 }

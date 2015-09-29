@@ -27,18 +27,7 @@ namespace SagaService
                 model.Approve();
                 break;
             }
-        }
-
-        public static void Reject(Guid requestId)
-        {
-            foreach (var model in _requests)
-            {
-                if (model.Id != requestId) continue;
-
-                model.Reject();
-                break;
-            }
-        }
+        } 
 
         public static RequestModel Get(Guid requestId)
         {

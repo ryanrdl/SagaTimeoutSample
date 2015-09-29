@@ -14,10 +14,9 @@ namespace SagaService
     public class Handler : 
         IHandleMessages<CreateRmaRequest>,
         IHandleMessages<ApproveRmaRequest>,
-        IHandleMessages<RejectRmaRequest>,
 
         IHandleMessages<ExtendAllAcceptanceTimeouts>,
-        IHandleMessages<ReduceAllRejectionTimeouts>
+        IHandleMessages<ReduceAllAcceptanceTimeouts>
 
     {
         private readonly IBus _bus;
@@ -37,8 +36,7 @@ namespace SagaService
             _bus.Publish(new RmaRequestCreated
             {
                 RequestId = message.RequestId,
-                AcceptanceTimeout = message.Timeout1Seconds,
-                RejectionTimeout = message.Timeout2Seconds
+                AcceptanceTimeout = message.AcceptTimeoutSeconds
             });    
         }
 
@@ -54,21 +52,7 @@ namespace SagaService
                 RequestId = message.RequestId,
                 CustomerId = message.CustomerId
             });
-        }
-
-        public void Handle(RejectRmaRequest message)
-        {
-            //using (Colr.Red())
-            //    Console.WriteLine("RMA request {0} rejected for customer {1}", message.RequestId, message.CustomerId);
-
-            Db.Reject(message.RequestId);
-
-            _bus.Publish(new RmaRequestRejected
-            {
-                RequestId = message.RequestId,
-                CustomerId = message.CustomerId
-            });
-        }
+        } 
          
         /// <summary>
         /// A saga needs a single message per saga and trying to make one message service multiple
@@ -96,14 +80,14 @@ namespace SagaService
         /// sagas ended up being hacky.
         /// </summary>
         /// <param name="message"></param>
-        public void Handle(ReduceAllRejectionTimeouts message)
+        public void Handle(ReduceAllAcceptanceTimeouts message)
         {
             using (Colr.Yellow())
                 Console.WriteLine("Reducing all active RMA requests rejection timeout for customer {0}", message.CustomerId);
 
             foreach (var model in Db.GetAll(message.CustomerId).Where(o => o.State == RequestModel.RequestState.Pending))
             {
-                _bus.SendLocal(new ReduceRejectionTimeout
+                _bus.SendLocal(new ReduceAcceptanceTimeout
                 {
                     CustomerId = model.CustomerId,
                     RequestId = model.Id,

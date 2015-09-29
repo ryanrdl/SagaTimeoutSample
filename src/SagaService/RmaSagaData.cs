@@ -10,7 +10,7 @@ namespace SagaService
         
 
         public DateTime AcceptanceTimeout { get; set; }
-        public DateTime RejectionTimeout { get; set; }
+        public DateTime WarningBeforeAcceptanceTimeout { get; set; }
         
     }
 }

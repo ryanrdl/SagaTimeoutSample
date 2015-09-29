@@ -3,7 +3,7 @@ using NServiceBus;
 
 namespace Messages
 {
-    public class ReduceRejectionTimeout : ICommand
+    public class ReduceAcceptanceTimeout : ICommand
     {
         public int CustomerId { get; set; }
         public Guid RequestId { get; set; }

@@ -1,9 +1,8 @@
-﻿using System;
-using NServiceBus;
+﻿using NServiceBus;
 
 namespace Messages
 {
-    public class ReduceAllRejectionTimeouts : ICommand
+    public class ReduceAllAcceptanceTimeouts : ICommand
     {
         public int CustomerId { get; set; }
         

@@ -8,12 +8,11 @@ namespace SagaService
     public class RmaSaga : Saga<RmaSagaData>,
         IAmStartedByMessages<RmaRequestCreated>,
         IHandleMessages<ExtendAcceptanceTimeout>,
-        IHandleMessages<ReduceRejectionTimeout>,
-        IHandleMessages<RmaRequestApproved>,
-        IHandleMessages<RmaRequestRejected>,
+        IHandleMessages<ReduceAcceptanceTimeout>,
+        IHandleMessages<RmaRequestApproved>, 
 
         IHandleTimeouts<AcceptanceTimeout>,
-        IHandleTimeouts<RejectionTimeout>,
+        IHandleTimeouts<WarningBeforeAcceptanceTimeout>,
 
         IHandleSagaNotFound
     {
@@ -21,9 +20,19 @@ namespace SagaService
         {
             mapper.ConfigureMapping<RmaRequestCreated>(o => o.RequestId).ToSaga(o => o.RequestId);
             mapper.ConfigureMapping<ExtendAcceptanceTimeout>(o => o.RequestId).ToSaga(o => o.RequestId);
-            mapper.ConfigureMapping<ReduceRejectionTimeout>(o => o.RequestId).ToSaga(o => o.RequestId);
-            mapper.ConfigureMapping<RmaRequestApproved>(o => o.RequestId).ToSaga(o => o.RequestId);
-            mapper.ConfigureMapping<RmaRequestRejected>(o => o.RequestId).ToSaga(o => o.RequestId);
+            mapper.ConfigureMapping<ReduceAcceptanceTimeout>(o => o.RequestId).ToSaga(o => o.RequestId);
+            mapper.ConfigureMapping<RmaRequestApproved>(o => o.RequestId).ToSaga(o => o.RequestId); 
+        }
+
+        private void SetAcceptanceTimeouts(DateTime acceptAt)
+        {
+            Data.AcceptanceTimeout = acceptAt;
+            RequestTimeout<AcceptanceTimeout>(Data.AcceptanceTimeout);
+
+            //warn 15 sec before auto acceptance
+            Data.WarningBeforeAcceptanceTimeout = acceptAt.AddSeconds(-15); 
+
+            RequestTimeout<WarningBeforeAcceptanceTimeout>(Data.WarningBeforeAcceptanceTimeout);
         }
 
         public void Handle(RmaRequestCreated message)
@@ -31,17 +40,7 @@ namespace SagaService
             Data.RequestId = message.RequestId;
             Data.CustomerId = message.CustomerId;
 
-            Data.AcceptanceTimeout = DateTime.Now.AddSeconds(message.AcceptanceTimeout)
-                //add extra time to avoid boundary condition
-                .AddSeconds(1);
-
-            RequestTimeout<AcceptanceTimeout>(Data.AcceptanceTimeout);
-
-            Data.RejectionTimeout = DateTime.Now.AddSeconds(message.RejectionTimeout)
-                //add extra time to avoid boundary condition
-                .AddSeconds(1);
-
-            RequestTimeout<RejectionTimeout>(Data.RejectionTimeout);
+            SetAcceptanceTimeouts(DateTime.Now.AddSeconds(message.AcceptanceTimeout));
 
             using (Colr.Green())
             {
@@ -52,8 +51,8 @@ namespace SagaService
                     message.RequestId,
                     message.CustomerId);
 
-                Console.WriteLine("Rejection timeout set to {0} for requestId {1} for customer {2}",
-                    Data.RejectionTimeout.ToLongTimeString(),
+                Console.WriteLine("WarningBeforeAcceptance timeout set to {0} for requestId {1} for customer {2}",
+                    Data.WarningBeforeAcceptanceTimeout.ToLongTimeString(),
                     message.RequestId,
                     message.CustomerId);
             }
@@ -106,48 +105,38 @@ namespace SagaService
                     Data.CustomerId);
         }
 
-        public void Timeout(RejectionTimeout state)
+        public void Timeout(WarningBeforeAcceptanceTimeout state)
         {
             RequestModel request = Db.Get(Data.RequestId);
             if (request.State == RequestModel.RequestState.Pending)
             {
-                if (Data.RejectionTimeout < DateTime.Now)
+                if (Data.WarningBeforeAcceptanceTimeout < DateTime.Now)
                 {
                     using (Colr.Red())
-                        Console.WriteLine("Rejecting rma request {0} because rejection timer timed out at {1} for customer {2}",
+                        Console.WriteLine("Rma request {0} will auto accept at {1} for customer {2}",
                             Data.RequestId,
-                            DateTime.Now.ToLongTimeString(),
+                            Data.AcceptanceTimeout,
                             Data.CustomerId);
-
-                    Bus.SendLocal(new RejectRmaRequest {RequestId = Data.RequestId, CustomerId = Data.CustomerId});
-                }
-                else
-                {
-                    //using (Colr.Blue())
-                    //    Console.WriteLine(
-                    //        "Saga not terminated because it has not exceeded timeout 2, it will expire at {0} (CurrentTime = {1})",
-                    //        Data.RejectionTimeout.ToLongTimeString(),
-                    //        DateTime.Now.ToLongTimeString());
-                }
-            }
-            else
-            {
-                //using (Colr.Yellow())
-                //    Console.WriteLine("Ignoring rejection timeout for request {0} because its state is {1}",
-                //        Data.RequestId,
-                //        Enum.GetName(typeof (RequestModel.RequestState), request.State));
-            }
+                    
+                    Bus.Publish(new RmaRequestAboutToAutoAccept
+                    {
+                        RequestId = Data.RequestId,
+                        CustomerId = Data.CustomerId,
+                        AutoAcceptAt = Data.AcceptanceTimeout
+                    });
+                } 
+            } 
         }
 
-        public void Handle(ReduceRejectionTimeout message)
+        public void Handle(ReduceAcceptanceTimeout message)
         {
-            Data.RejectionTimeout = Data.RejectionTimeout.AddSeconds(message.ReduceBySeconds*-1);
-            RequestTimeout<RejectionTimeout>(Data.RejectionTimeout);
+            Data.WarningBeforeAcceptanceTimeout = Data.WarningBeforeAcceptanceTimeout.AddSeconds(message.ReduceBySeconds*-1);
+            RequestTimeout<WarningBeforeAcceptanceTimeout>(Data.WarningBeforeAcceptanceTimeout);
 
             using (Colr.Green())
                 Console.WriteLine("Request {0} rejection timeout reduced to {1} at {2} for customer {3}",
                     Data.RequestId,
-                    Data.RejectionTimeout.ToLongTimeString(),
+                    Data.WarningBeforeAcceptanceTimeout.ToLongTimeString(),
                     DateTime.Now.ToLongTimeString(), 
                     Data.CustomerId);
         }
@@ -171,17 +160,7 @@ namespace SagaService
                     DateTime.Now.ToLongTimeString(), 
                     message.CustomerId);
             MarkAsComplete();
-        }
-
-        public void Handle(RmaRequestRejected message)
-        {
-            using (Colr.Red())
-                Console.WriteLine("Completing saga because RMA request {0} was rejected at {1} for customer {2}",
-                    Data.RequestId,
-                    DateTime.Now.ToLongTimeString(), 
-                    message.CustomerId);
-            MarkAsComplete();
-        }
+        } 
     }
 
     public class AcceptanceTimeout
@@ -189,7 +168,7 @@ namespace SagaService
 
     }
 
-    public class RejectionTimeout
+    public class WarningBeforeAcceptanceTimeout
     {
 
     }

@@ -44,17 +44,17 @@
   <ItemGroup>
     <Compile Include="ExtendAllAcceptanceTimeouts.cs" />
     <Compile Include="Logs.cs" />
-    <Compile Include="ReduceAllRejectionTimeouts.cs" />
-    <Compile Include="RejectRmaRequest.cs" />
+    <Compile Include="ReduceAllAcceptanceTimeouts.cs" />
+    <Compile Include="RmaRequestAboutToAutoAccept.cs" />
+    <Compile Include="WarnBeforeRmaRequestAcceptance.cs" />
     <Compile Include="RmaRequestApproved.cs" />
     <Compile Include="Colr.cs" />
     <Compile Include="CreateRmaRequest.cs" />
     <Compile Include="ExtendAcceptanceTimeout.cs" />
-    <Compile Include="ReduceRejectionTimeout.cs" />
+    <Compile Include="ReduceAcceptanceTimeout.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ApproveRmaRequest.cs" />
     <Compile Include="RmaRequestCreated.cs" />
-    <Compile Include="RmaRequestRejected.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
