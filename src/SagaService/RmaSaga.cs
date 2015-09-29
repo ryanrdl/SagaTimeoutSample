@@ -45,10 +45,8 @@ namespace SagaService
 
             SetAcceptanceTimeouts(DateTime.Now.AddSeconds(message.AcceptanceTimeout));
 
-            using (Colr.Green())
-            {
-                //Console.WriteLine("Current Time = {0}", DateTime.Now.ToLongTimeString());
-
+            using (Colr.White())
+            { 
                 Console.WriteLine("Acceptance timeout set to {0} for requestId {1} for customer {2}",
                     Data.AcceptanceTimeout.ToLongTimeString(), 
                     message.RequestId,
@@ -60,8 +58,7 @@ namespace SagaService
                     message.CustomerId);
             }
         }
-
-
+        
         public void Timeout(AcceptanceTimeout state)
         {
             RequestModel request = Db.Get(Data.RequestId);
@@ -69,7 +66,7 @@ namespace SagaService
             {
                 if (Data.AcceptanceTimeout < DateTime.Now)
                 {
-                    using (Colr.Green())
+                    using (Colr.White())
                         Console.WriteLine("Approving rma request {0} because acceptance timer timed out at {1} for customer {2}",
                             Data.RequestId,
                             DateTime.Now.ToLongTimeString(),
@@ -134,7 +131,7 @@ namespace SagaService
         {
             SetAcceptanceTimeouts(Data.AcceptanceTimeout.AddSeconds(message.ReduceBySeconds*-1)); 
 
-            using (Colr.Green())
+            using (Colr.White())
                 Console.WriteLine("Request {0} rejection timeout reduced to {1} at {2} for customer {3}",
                     Data.RequestId,
                     Data.WarningBeforeAcceptanceTimeout.ToLongTimeString(),

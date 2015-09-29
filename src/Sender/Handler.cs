@@ -22,7 +22,7 @@ namespace Sender
         {
             Console.WriteLine(Environment.NewLine);
 
-            using (Colr.Magenta())
+            using (Colr.Yellow())
                 Console.WriteLine(
                     "!!!!!!!!!!! Rma request {0} for customer {1} will auto accept in {2} seconds if you don't extend it!",
                     message.RequestId,
