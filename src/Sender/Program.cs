@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using Messages;
 using NServiceBus;
@@ -43,18 +44,16 @@ namespace Sender
             {
             }
         }
-
-        private static readonly ConcurrentBag<Guid> _customers = new ConcurrentBag<Guid>(); 
-
+        
         public static bool Menu(ISendOnlyBus bus)
         {
-            Guid[] customers = _customers.ToArray();
+            Guid[] customers = Db.AllCustomers();
 
             using (Colr.Green())
             {
                 Console.WriteLine(Environment.NewLine + "Menu:");
                 Console.WriteLine("(n)ew customer");
-                for (var i = 0; i < _customers.Count; i++)
+                for (var i = 0; i < customers.Length; i++)
                 {
                     Console.WriteLine("({0}) Customer {1}", i, customers[i]);
                 }
@@ -66,9 +65,7 @@ namespace Sender
             switch (input)
             {
                 case 'n':
-                    Guid customerId = Guid.NewGuid();
-
-                    _customers.Add(customerId);
+                    Guid customerId = Db.NewCustomer();
                     while (CustomerMenu(bus, customerId))
                     {
                     }
@@ -77,7 +74,7 @@ namespace Sender
                     return false;
                 default:
                     int i = int.Parse(input.ToString());
-                    if (i < _customers.Count)
+                    if (i < customers.Length)
                     {
                         while (CustomerMenu(bus, customers[i]))
                         { 
@@ -92,11 +89,9 @@ namespace Sender
             }
         }
 
-        private static readonly ConcurrentDictionary<Guid, List<Guid>> _requests = new ConcurrentDictionary<Guid, List<Guid>>();
-
         public static bool CustomerMenu(ISendOnlyBus bus, Guid customerId)
         {
-            List<Guid> requests = _requests.GetOrAdd(customerId, new List<Guid>());
+            Guid[] requests = Db.AllRequests(customerId);
 
             Console.WriteLine(Environment.NewLine);
             using (Colr.Yellow())
@@ -105,7 +100,7 @@ namespace Sender
                 Console.WriteLine("(n)ew request");
                 Console.WriteLine("(e)xtend all acceptance timeouts");
                 Console.WriteLine("(r)educe all reject timeouts");
-                for (var i = 0; i < requests.Count; i++)
+                for (var i = 0; i < requests.Length; i++)
                 {
                     Console.WriteLine("({0}) Request {1}", i, requests[i]);
                 }
@@ -117,17 +112,12 @@ namespace Sender
             switch (input)
             {
                 case 'n':
-                    foreach (var request in _requests)
+                    if (requests.Any(request => request == customerId))
                     {
-                        if (request.Key == customerId)
+                        while (RequestMenu(bus, customerId, CreateNewRequest(bus, customerId)))
                         {
-                            Guid requestId = CreateNewRequest(bus, customerId);
-                            request.Value.Add(requestId);
-                            while (RequestMenu(bus, customerId, requestId))
-                            {
-                            }
-                            return true;
                         }
+                        return true;
                     }
 
                     return true;
@@ -163,7 +153,7 @@ namespace Sender
                     return false;
                 default:
                     int i = int.Parse(input.ToString());
-                    if (i < requests.Count)
+                    if (i < requests.Length)
                     {
                         while (RequestMenu(bus, customerId, requests[i]))
                         {
@@ -254,16 +244,15 @@ namespace Sender
         }
 
         private static Guid CreateNewRequest(ISendOnlyBus bus, Guid customerId)
-        {
-            Guid requestId = Guid.NewGuid();
+        { 
+            Guid requestId = Db.NewRequest(customerId);
             bus.Send(new CreateRmaRequest
             {
                 CustomerId = customerId,
                 RequestId = requestId,
                 Timeout1Seconds = 30,
                 Timeout2Seconds = 30
-            }); 
-
+            });  
             return requestId;
         } 
     }
