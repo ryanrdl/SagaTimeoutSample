@@ -98,7 +98,7 @@ namespace Sender
                 Console.WriteLine(Environment.NewLine + "Customer {0} Menu:", customerId);
                 Console.WriteLine("(n)ew request");
                 Console.WriteLine("(e)xtend all acceptance timeouts");
-                Console.WriteLine("(r)educe all reject timeouts");
+                Console.WriteLine("(r)educe all acceptance timeouts");
                 for (var i = 0; i < requests.Length; i++)
                 {
                     Console.WriteLine("({0}) Request {1}", i, requests[i]);
@@ -111,8 +111,20 @@ namespace Sender
             switch (input)
             {
                 case 'n':
-                    while (RequestMenu(bus, customerId, CreateNewRequest(bus, customerId)))
+                    
+                    Console.WriteLine(Environment.NewLine);
+                    int acceptIn = GetNumericValue("Number of seconds before auto accept or (0) to cancel: ");
+
+                    if (acceptIn > 0)
                     {
+                        while (RequestMenu(bus, customerId, CreateNewRequest(bus, customerId, acceptIn)))
+                        {
+                        }
+                    }
+                    else
+                    {
+                        using (Colr.Red())
+                            Console.WriteLine("Canceled"); 
                     }
                     return true;
                 case 'e':
@@ -190,10 +202,9 @@ namespace Sender
             using (Colr.Magenta())
             {
                 Console.WriteLine(Environment.NewLine + "Request {0} Menu:", requestId);
-                Console.WriteLine("(a)pprove");
-                Console.WriteLine("(r)eject");
+                Console.WriteLine("(a)pprove"); 
                 Console.WriteLine("(e)xtend acceptance timeout");
-                Console.WriteLine("re(d)uce rejection timeout");
+                Console.WriteLine("(r)educe acceptance timeout");
                 Console.WriteLine("(b)ack to previous menu");
                 Console.Write(" > ");
             }
@@ -203,14 +214,11 @@ namespace Sender
             { 
                 case 'a':
                     bus.Send(new ApproveRmaRequest{CustomerId = customerId, RequestId = requestId});
-                    return true;
-                case 'r':
-                    bus.Send(new WarnBeforeRmaRequestAcceptance{CustomerId = customerId, RequestId = requestId});
-                    return true;
+                    return true; 
                 case 'e':
                     bus.Send(new ExtendAcceptanceTimeout {CustomerId = customerId, RequestId = requestId, ExtendBySeconds = 15});
                     return true;
-                case 'd':
+                case 'r':
                     bus.Send(new ReduceAcceptanceTimeout {CustomerId = customerId, RequestId = requestId, ReduceBySeconds = 15});
                     return true;
                 case 'b':
@@ -238,14 +246,14 @@ namespace Sender
             }
         }
 
-        private static Guid CreateNewRequest(ISendOnlyBus bus, int customerId)
+        private static Guid CreateNewRequest(ISendOnlyBus bus, int customerId, int acceptIn)
         { 
             Guid requestId = Db.NewRequest(customerId);
             bus.Send(new CreateRmaRequest
             {
                 CustomerId = customerId,
                 RequestId = requestId,
-                AcceptTimeoutSeconds = 60 
+                AcceptTimeoutSeconds = acceptIn
             });  
             return requestId;
         } 

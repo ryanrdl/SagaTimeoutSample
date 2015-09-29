@@ -36,6 +36,7 @@ namespace SagaService
             _bus.Publish(new RmaRequestCreated
             {
                 RequestId = message.RequestId,
+                CustomerId = message.CustomerId,
                 AcceptanceTimeout = message.AcceptTimeoutSeconds
             });    
         }

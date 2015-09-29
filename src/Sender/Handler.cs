@@ -26,8 +26,8 @@ namespace Sender
                 Console.WriteLine(
                     "!!!!!!!!!!! Rma request {0} for customer {1} will auto accept in {2} seconds if you don't extend it!",
                     message.RequestId,
-                    message.CustomerId,
-                    DateTime.Now.Subtract(message.AutoAcceptAt).TotalSeconds
+                    message.CustomerId, 
+                    message.AutoAcceptAt.Subtract(DateTime.Now).TotalSeconds
                     );
 
             Console.WriteLine(Environment.NewLine);
