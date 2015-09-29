@@ -7,8 +7,8 @@ namespace SagaService
     {
         public Guid RequestId { get; set; }
 
-        public DateTime Timeout1Expires { get; set; }
-        public DateTime Timeout2Expires { get; set; }
+        public DateTime AcceptanceTimeout { get; set; }
+        public DateTime RejectionTimeout { get; set; }
         
     }
 }

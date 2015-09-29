@@ -30,17 +30,17 @@ namespace SagaService
         {
             Data.RequestId = message.RequestId;
 
-            Data.Timeout1Expires = DateTime.Now.AddSeconds(message.Timeout1Seconds)
+            Data.AcceptanceTimeout = DateTime.Now.AddSeconds(message.Timeout1Seconds)
                 //add extra time to avoid boundary condition
                 .AddSeconds(1);
 
-            RequestTimeout<AcceptanceTimeout>(Data.Timeout1Expires);
+            RequestTimeout<AcceptanceTimeout>(Data.AcceptanceTimeout);
 
-            Data.Timeout2Expires = DateTime.Now.AddSeconds(message.Timeout2Seconds)
+            Data.RejectionTimeout = DateTime.Now.AddSeconds(message.Timeout2Seconds)
                 //add extra time to avoid boundary condition
                 .AddSeconds(1);
 
-            RequestTimeout<RejectionTimeout>(Data.Timeout2Expires);
+            RequestTimeout<RejectionTimeout>(Data.RejectionTimeout);
 
 
 
@@ -48,71 +48,100 @@ namespace SagaService
             {
                 Console.WriteLine("Current Time = {0}", DateTime.Now.ToLongTimeString());
 
-                Console.WriteLine("Saga timeout 1 set to " + Data.Timeout1Expires.ToLongTimeString());
+                Console.WriteLine("Acceptance timeout set to {0} for requestId {1}",
+                    Data.AcceptanceTimeout.ToLongTimeString(), message.RequestId);
 
-                Console.WriteLine("Saga timeout 2 set to " + Data.Timeout2Expires.ToLongTimeString());
+                Console.WriteLine("Rejection timeout set to {0} for requestId {1}",
+                    Data.RejectionTimeout.ToLongTimeString(), message.RequestId);
             }
         }
 
 
         public void Timeout(AcceptanceTimeout state)
         {
-            if (Data.Timeout1Expires < DateTime.Now)
+            RequestModel request = Db.Get(Data.RequestId);
+            if (request.State == RequestModel.RequestState.Pending)
             {
-                using (Colr.Red())
-                    Console.WriteLine("Approving rma request because timeout 1 timed out at {0}",
-                        DateTime.Now.ToLongTimeString());
+                if (Data.AcceptanceTimeout < DateTime.Now)
+                {
+                    using (Colr.Green())
+                        Console.WriteLine("Approving rma request {0} because acceptance timer timed out at {1}",
+                            Data.RequestId,
+                            DateTime.Now.ToLongTimeString());
 
-                Bus.Send(new ApproveRmaRequest {RequestId = Data.RequestId});
+                    Bus.SendLocal(new ApproveRmaRequest {RequestId = Data.RequestId});
+                }
+                else
+                {
+                    using (Colr.Blue())
+                        Console.WriteLine(
+                            "Saga not terminated because it has not exceeded timeout 1, it will expire at {0} (CurrentTime = {1})",
+                            Data.AcceptanceTimeout.ToLongTimeString(),
+                            DateTime.Now.ToLongTimeString());
+                }
             }
             else
             {
-                using (Colr.Blue())
-                    Console.WriteLine(
-                        "Saga not terminated because it has not exceeded timeout 1, it will expire at {0} (CurrentTime = {1})",
-                        Data.Timeout1Expires.ToLongTimeString(),
-                        DateTime.Now.ToLongTimeString());
+                using (Colr.Yellow())
+                    Console.WriteLine("Ignoring acceptance timeout for request {0} because its state is {1}",
+                        Data.RequestId,
+                        Enum.GetName(typeof (RequestModel.RequestState), request.State));
             }
         }
 
         public void Handle(ExtendAcceptanceTimeout message)
         {
-            Data.Timeout1Expires = Data.Timeout1Expires.AddSeconds(message.ExtendBySeconds);
-            RequestTimeout<AcceptanceTimeout>(Data.Timeout1Expires);
+            Data.AcceptanceTimeout = Data.AcceptanceTimeout.AddSeconds(message.ExtendBySeconds);
+            RequestTimeout<AcceptanceTimeout>(Data.AcceptanceTimeout);
 
             using (Colr.Green())
-                Console.WriteLine("Saga timeout 1 extended to {0} at {1}",
-                    Data.Timeout1Expires.ToLongTimeString(),
+                Console.WriteLine("Request {0} acceptance timeout extended to {1} at {2}",
+                    Data.RequestId,
+                    Data.AcceptanceTimeout.ToLongTimeString(),
                     DateTime.Now.ToLongTimeString());
         }
 
         public void Timeout(RejectionTimeout state)
         {
-            if (Data.Timeout2Expires < DateTime.Now)
+            RequestModel request = Db.Get(Data.RequestId);
+            if (request.State == RequestModel.RequestState.Pending)
             {
-                using (Colr.Red())
-                    Console.WriteLine("Rejecting rma request because timeout 2 timed out at {0}",
-                        DateTime.Now.ToLongTimeString());
+                if (Data.RejectionTimeout < DateTime.Now)
+                {
+                    using (Colr.Red())
+                        Console.WriteLine("Rejecting rma request {0} because rejection timer timed out at {1}",
+                            Data.RequestId,
+                            DateTime.Now.ToLongTimeString());
 
-                Bus.Send(new RejectRmaRequest {RequestId = Data.RequestId});
+                    Bus.SendLocal(new RejectRmaRequest {RequestId = Data.RequestId});
+                }
+                else
+                {
+                    using (Colr.Blue())
+                        Console.WriteLine(
+                            "Saga not terminated because it has not exceeded timeout 2, it will expire at {0} (CurrentTime = {1})",
+                            Data.RejectionTimeout.ToLongTimeString(),
+                            DateTime.Now.ToLongTimeString());
+                }
             }
             else
             {
-                using (Colr.Blue())
-                    Console.WriteLine(
-                        "Saga not terminated because it has not exceeded timeout 2, it will expire at {0} (CurrentTime = {1})",
-                        Data.Timeout2Expires.ToLongTimeString(),
-                        DateTime.Now.ToLongTimeString());
+                using (Colr.Yellow())
+                    Console.WriteLine("Ignoring rejection timeout for request {0} because its state is {1}",
+                        Data.RequestId,
+                        Enum.GetName(typeof (RequestModel.RequestState), request.State));
             }
         }
 
         public void Handle(ReduceRejectionTimeout message)
         {
-            Data.Timeout2Expires = Data.Timeout2Expires.AddSeconds(message.ReduceBySeconds*-1);
-            RequestTimeout<RejectionTimeout>(Data.Timeout2Expires);
+            Data.RejectionTimeout = Data.RejectionTimeout.AddSeconds(message.ReduceBySeconds*-1);
+            RequestTimeout<RejectionTimeout>(Data.RejectionTimeout);
 
             using (Colr.Green())
-                Console.WriteLine("Saga timeout 2 reduced to {0} at {1}", Data.Timeout2Expires.ToLongTimeString(),
+                Console.WriteLine("Request {0} rejection timeout reduced to {1} at {2}",
+                    Data.RequestId,
+                    Data.RejectionTimeout.ToLongTimeString(),
                     DateTime.Now.ToLongTimeString());
         }
 
@@ -120,7 +149,8 @@ namespace SagaService
         {
             using (Colr.Red())
             {
-                Console.WriteLine("Saga not found so it must have been expired, approved, or rejected.  Current Time = ({0}).",
+                Console.WriteLine(
+                    "Saga not found so it must have been expired, approved, or rejected.  Current Time = ({0}).",
                     DateTime.Now.ToLongTimeString());
                 Console.WriteLine(message);
             }
@@ -129,7 +159,8 @@ namespace SagaService
         public void Handle(RmaRequestApproved message)
         {
             using (Colr.Green())
-                Console.WriteLine("Completing saga because RMA request {0} was approved at {1}", message.RequestId,
+                Console.WriteLine("Completing saga because RMA request {0} was approved at {1}",
+                    Data.RequestId,
                     DateTime.Now.ToLongTimeString());
             MarkAsComplete();
         }
@@ -137,7 +168,8 @@ namespace SagaService
         public void Handle(RmaRequestRejected message)
         {
             using (Colr.Red())
-                Console.WriteLine("Completing saga because RMA request {0} was rejected at {1}", message.RequestId,
+                Console.WriteLine("Completing saga because RMA request {0} was rejected at {1}",
+                    Data.RequestId,
                     DateTime.Now.ToLongTimeString());
             MarkAsComplete();
         }

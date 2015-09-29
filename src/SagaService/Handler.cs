@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using Messages;
 using NServiceBus;
 
@@ -75,7 +76,10 @@ namespace SagaService
         /// <param name="message"></param>
         public void Handle(ExtendAllAcceptanceTimeouts message)
         {
-            foreach (var model in Db.GetAll())
+            using (Colr.Yellow())
+                Console.WriteLine("Extending all active RMA requests acceptance timeout");
+
+            foreach (var model in Db.GetAll().Where(o => o.State == RequestModel.RequestState.Pending))
             {
                 _bus.SendLocal(new ExtendAcceptanceTimeout
                 {
@@ -93,7 +97,10 @@ namespace SagaService
         /// <param name="message"></param>
         public void Handle(ReduceAllRejectionTimeouts message)
         {
-            foreach (var model in Db.GetAll())
+            using (Colr.Yellow())
+                Console.WriteLine("Reducing all active RMA requests rejection timeout");
+
+            foreach (var model in Db.GetAll().Where(o => o.State == RequestModel.RequestState.Pending))
             {
                 _bus.SendLocal(new ReduceRejectionTimeout
                 {

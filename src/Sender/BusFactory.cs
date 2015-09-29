@@ -1,4 +1,6 @@
-﻿using NServiceBus;
+﻿using System;
+using Messages;
+using NServiceBus;
 using NServiceBus.Logging;
 
 namespace Sender
@@ -7,14 +9,15 @@ namespace Sender
     {
         public static IStartableBus GetBus()
         {
+            DefaultFactory defaultFactory = LogManager.Use<DefaultFactory>();
+            defaultFactory.Directory(Logs.Get(Environment.CurrentDirectory));
+            defaultFactory.Level(LogLevel.Error);
+
             var configuration = new BusConfiguration();
             configuration.UseTransport<RabbitMQTransport>();
             configuration.UsePersistence<InMemoryPersistence>(); 
 
-            configuration.AutoSubscribe();
-           
-            DefaultFactory defaultFactory = LogManager.Use<DefaultFactory>();
-            defaultFactory.Level(LogLevel.Fatal);
+            configuration.AutoSubscribe(); 
              
             var bus = Bus.Create(configuration); 
             return bus;

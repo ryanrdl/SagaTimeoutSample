@@ -1,4 +1,7 @@
 
+using System;
+using System.IO;
+using Messages;
 using NServiceBus.Logging;
 
 namespace SagaService
@@ -8,13 +11,14 @@ namespace SagaService
     {
         public void Customize(BusConfiguration configuration)
         {
+            DefaultFactory defaultFactory = LogManager.Use<DefaultFactory>();
+            defaultFactory.Directory(Logs.Get(Environment.CurrentDirectory));
+            defaultFactory.Level(LogLevel.Error); 
+
             configuration.UseTransport<RabbitMQTransport>();
             configuration.UsePersistence<InMemoryPersistence>(); 
 
             configuration.AutoSubscribe();
-           
-            DefaultFactory defaultFactory = LogManager.Use<DefaultFactory>();
-            defaultFactory.Level(LogLevel.Fatal);
         }
     }
 }

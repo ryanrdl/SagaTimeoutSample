@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Linq;
 
 namespace SagaService
 {
@@ -37,6 +38,11 @@ namespace SagaService
                 model.Reject();
                 break;
             }
+        }
+
+        public static RequestModel Get(Guid requestId)
+        {
+            return _requests.FirstOrDefault(model => model.Id == requestId);
         }
     }
 
