@@ -132,7 +132,8 @@ namespace Sender
 
                     if (acceptIn > 0)
                     {
-                        while (RequestMenu(bus, customerId, CreateNewRequest(bus, customerId, acceptIn)))
+                        Guid requestId = CreateNewRequest(bus, customerId, acceptIn);
+                        while (RequestMenu(bus, customerId, requestId))
                         {
                         }
                     }
