@@ -5,9 +5,9 @@ namespace Messages
 {
     public class RmaRequestCreated : IEvent
     {
-        public Guid CustomerId { get; set; }
+        public int CustomerId { get; set; }
         public Guid RequestId { get; set; } 
-        public int Timeout1Seconds { get; set; }
-        public int Timeout2Seconds { get; set; }  
+        public int AcceptanceTimeout { get; set; }
+        public int RejectionTimeout { get; set; }  
     }
 }

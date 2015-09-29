@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Messages;
@@ -44,18 +42,18 @@ namespace Sender
             {
             }
         }
-        
+
         public static bool Menu(ISendOnlyBus bus)
         {
-            Guid[] customers = Db.AllCustomers();
+            int[] customers = Db.AllCustomers();
 
             using (Colr.Green())
             {
                 Console.WriteLine(Environment.NewLine + "Menu:");
                 Console.WriteLine("(n)ew customer");
-                for (var i = 0; i < customers.Length; i++)
+                foreach (var customer in customers)
                 {
-                    Console.WriteLine("({0}) Customer {1}", i, customers[i]);
+                    Console.WriteLine("({0}) Customer {1}", customer, customer);
                 }
                 Console.WriteLine("(q) to quit");
                 Console.Write(" > ");
@@ -65,7 +63,7 @@ namespace Sender
             switch (input)
             {
                 case 'n':
-                    Guid customerId = Db.NewCustomer();
+                    int customerId = Db.NewCustomer();
                     while (CustomerMenu(bus, customerId))
                     {
                     }
@@ -73,14 +71,15 @@ namespace Sender
                 case 'q':
                     return false;
                 default:
-                    int i = int.Parse(input.ToString());
-                    if (i < customers.Length)
-                    {
-                        while (CustomerMenu(bus, customers[i]))
-                        { 
+                    int i;
+                    if (int.TryParse(input.ToString(), out i))
+                        if (customers.Contains(i))
+                        {
+                            while (CustomerMenu(bus, i))
+                            {
+                            }
+                            return true;
                         }
-                        return true;
-                    }
 
                     using (Colr.Red())
                         Console.WriteLine("Unknown input '{0}', please try again" + Environment.NewLine, input);
@@ -89,7 +88,7 @@ namespace Sender
             }
         }
 
-        public static bool CustomerMenu(ISendOnlyBus bus, Guid customerId)
+        public static bool CustomerMenu(ISendOnlyBus bus, int customerId)
         {
             Guid[] requests = Db.AllRequests(customerId);
 
@@ -112,14 +111,9 @@ namespace Sender
             switch (input)
             {
                 case 'n':
-                    if (requests.Any(request => request == customerId))
+                    while (RequestMenu(bus, customerId, CreateNewRequest(bus, customerId)))
                     {
-                        while (RequestMenu(bus, customerId, CreateNewRequest(bus, customerId)))
-                        {
-                        }
-                        return true;
                     }
-
                     return true;
                 case 'e':
                     Console.WriteLine(Environment.NewLine);
@@ -152,19 +146,20 @@ namespace Sender
                 case 'b':
                     return false;
                 default:
-                    int i = int.Parse(input.ToString());
-                    if (i < requests.Length)
-                    {
-                        while (RequestMenu(bus, customerId, requests[i]))
+                    int i;
+                    if (int.TryParse(input.ToString(), out i))
+                        if (i < requests.Length)
                         {
+                            while (RequestMenu(bus, customerId, requests[i]))
+                            {
+                            }
+                            return true;
                         }
-                        return true;
-                    }
 
                     using (Colr.Red())
                         Console.WriteLine("Unknown input '{0}', please try again" + Environment.NewLine, input);
                     return true;
-            } 
+            }
         }
 
         public static int GetNumericValue(string prompt)
@@ -189,7 +184,7 @@ namespace Sender
             return value;
         }
 
-        public static bool RequestMenu(ISendOnlyBus bus, Guid customerId, Guid requestId)
+        public static bool RequestMenu(ISendOnlyBus bus, int customerId, Guid requestId)
         {
             Console.WriteLine(Environment.NewLine);
             using (Colr.Magenta())
@@ -243,7 +238,7 @@ namespace Sender
             }
         }
 
-        private static Guid CreateNewRequest(ISendOnlyBus bus, Guid customerId)
+        private static Guid CreateNewRequest(ISendOnlyBus bus, int customerId)
         { 
             Guid requestId = Db.NewRequest(customerId);
             bus.Send(new CreateRmaRequest

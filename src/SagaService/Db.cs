@@ -8,14 +8,14 @@ namespace SagaService
     {
         private static readonly ConcurrentBag<RequestModel> _requests = new ConcurrentBag<RequestModel>();
   
-        public static void Save(Guid requestId, Guid customerId)
+        public static void Save(Guid requestId, int customerId)
         {
             _requests.Add(new RequestModel{Id = requestId, CustomerId = customerId});
         }
 
-        public static RequestModel[] GetAll()
+        public static RequestModel[] GetAll(int customerId)
         {
-            return _requests.ToArray();
+            return _requests.Where(o => o.CustomerId == customerId).ToArray();
         }
 
         public static void Approve(Guid requestId)
@@ -49,7 +49,7 @@ namespace SagaService
     public class RequestModel
     {
         public Guid Id { get; set; }
-        public Guid CustomerId { get; set; }
+        public int CustomerId { get; set; }
         
         public RequestState State { get; private set; }
 

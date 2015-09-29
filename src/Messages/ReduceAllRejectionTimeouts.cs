@@ -5,7 +5,7 @@ namespace Messages
 {
     public class ReduceAllRejectionTimeouts : ICommand
     {
-        public Guid CustomerId { get; set; }
+        public int CustomerId { get; set; }
         
         public int ReduceBySeconds { get; set; }
     }

@@ -1,19 +1,14 @@
-
-using System;
-using System.IO;
-using Messages;
+using NServiceBus;
 using NServiceBus.Logging;
 
 namespace SagaService
 {
-    using NServiceBus; 
     public class EndpointConfig : IConfigureThisEndpoint
     {
         public void Customize(BusConfiguration configuration)
         {
-            DefaultFactory defaultFactory = LogManager.Use<DefaultFactory>();
-            defaultFactory.Directory(Logs.Get(Environment.CurrentDirectory));
-            defaultFactory.Level(LogLevel.Error); 
+            DefaultFactory defaultFactory = LogManager.Use<DefaultFactory>(); 
+            defaultFactory.Level(LogLevel.Fatal); 
 
             configuration.UseTransport<RabbitMQTransport>();
             configuration.UsePersistence<InMemoryPersistence>(); 

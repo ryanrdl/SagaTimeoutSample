@@ -5,7 +5,7 @@ namespace Messages
 {
     public class RmaRequestApproved : IEvent
     {
-        public Guid CustomerId { get; set; }
+        public int CustomerId { get; set; }
         public Guid RequestId { get; set; }
     }
 }

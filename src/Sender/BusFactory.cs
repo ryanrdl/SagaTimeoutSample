@@ -9,9 +9,8 @@ namespace Sender
     {
         public static IStartableBus GetBus()
         {
-            DefaultFactory defaultFactory = LogManager.Use<DefaultFactory>();
-            defaultFactory.Directory(Logs.Get(Environment.CurrentDirectory));
-            defaultFactory.Level(LogLevel.Error);
+            DefaultFactory defaultFactory = LogManager.Use<DefaultFactory>(); 
+            defaultFactory.Level(LogLevel.Fatal);
 
             var configuration = new BusConfiguration();
             configuration.UseTransport<RabbitMQTransport>();

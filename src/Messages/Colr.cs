@@ -39,6 +39,11 @@ namespace Messages
             return new Colr(ConsoleColor.Yellow);
         }
 
+        public static Colr White()
+        {
+            return new Colr(ConsoleColor.White);
+        }
+
         public static Colr Magenta()
         {
             return new Colr(ConsoleColor.Magenta);

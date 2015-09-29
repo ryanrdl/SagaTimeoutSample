@@ -5,7 +5,7 @@ namespace Messages
 {
     public class ExtendAllAcceptanceTimeouts : ICommand
     {
-        public Guid CustomerId { get; set; }
+        public int CustomerId { get; set; }
         public int ExtendBySeconds { get; set; }
     } 
 }

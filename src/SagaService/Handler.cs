@@ -29,43 +29,44 @@ namespace SagaService
 
         public void Handle(CreateRmaRequest message)
         {
-            using (Colr.Blue())
-                Console.WriteLine("RMA request {0} approved", message.RequestId);
-
-
+            //using (Colr.White())
+            //    Console.WriteLine("RMA request {0} created for customer {1}", message.RequestId, message.CustomerId);
+            
             Db.Save(message.RequestId, message.CustomerId);
 
             _bus.Publish(new RmaRequestCreated
             {
                 RequestId = message.RequestId,
-                Timeout1Seconds = message.Timeout1Seconds,
-                Timeout2Seconds = message.Timeout2Seconds
+                AcceptanceTimeout = message.Timeout1Seconds,
+                RejectionTimeout = message.Timeout2Seconds
             });    
         }
 
         public void Handle(ApproveRmaRequest message)
         {
-            using (Colr.Green())
-                Console.WriteLine("RMA request {0} approved", message.RequestId);
+            //using (Colr.Green())
+            //    Console.WriteLine("RMA request {0} approved for customer {1}", message.RequestId, message.CustomerId);
 
             Db.Approve(message.RequestId);
 
             _bus.Publish(new RmaRequestApproved
             {
-                RequestId = message.RequestId
+                RequestId = message.RequestId,
+                CustomerId = message.CustomerId
             });
         }
 
         public void Handle(RejectRmaRequest message)
         {
-            using (Colr.Red())
-                Console.WriteLine("RMA request {0} rejected", message.RequestId);
+            //using (Colr.Red())
+            //    Console.WriteLine("RMA request {0} rejected for customer {1}", message.RequestId, message.CustomerId);
 
             Db.Reject(message.RequestId);
 
             _bus.Publish(new RmaRequestRejected
             {
-                RequestId = message.RequestId
+                RequestId = message.RequestId,
+                CustomerId = message.CustomerId
             });
         }
          
@@ -77,9 +78,9 @@ namespace SagaService
         public void Handle(ExtendAllAcceptanceTimeouts message)
         {
             using (Colr.Yellow())
-                Console.WriteLine("Extending all active RMA requests acceptance timeout");
+                Console.WriteLine("Extending all active RMA requests acceptance timeout for customer {0}", message.CustomerId);
 
-            foreach (var model in Db.GetAll().Where(o => o.State == RequestModel.RequestState.Pending))
+            foreach (var model in Db.GetAll(message.CustomerId).Where(o => o.State == RequestModel.RequestState.Pending))
             {
                 _bus.SendLocal(new ExtendAcceptanceTimeout
                 {
@@ -98,9 +99,9 @@ namespace SagaService
         public void Handle(ReduceAllRejectionTimeouts message)
         {
             using (Colr.Yellow())
-                Console.WriteLine("Reducing all active RMA requests rejection timeout");
+                Console.WriteLine("Reducing all active RMA requests rejection timeout for customer {0}", message.CustomerId);
 
-            foreach (var model in Db.GetAll().Where(o => o.State == RequestModel.RequestState.Pending))
+            foreach (var model in Db.GetAll(message.CustomerId).Where(o => o.State == RequestModel.RequestState.Pending))
             {
                 _bus.SendLocal(new ReduceRejectionTimeout
                 {
